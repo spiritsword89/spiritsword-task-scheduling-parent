@@ -4,3 +4,6 @@ spiritsword:
     driver: com.mysql.cj.jdbc.Driver
     username: root
     password: 123456
+  thread:
+    core: 5
+    max: 10
