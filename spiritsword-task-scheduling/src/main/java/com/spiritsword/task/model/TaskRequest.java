@@ -9,6 +9,8 @@ public class TaskRequest {
     //Handler Id
     private String handlerId;
 
+    private String handlerClass;
+
     public Map<String, Object> getParams() {
         return params;
     }
@@ -23,5 +25,13 @@ public class TaskRequest {
 
     public void setHandlerId(String handlerId) {
         this.handlerId = handlerId;
+    }
+
+    public String getHandlerClass() {
+        return handlerClass;
+    }
+
+    public void setHandlerClass(String handlerClass) {
+        this.handlerClass = handlerClass;
     }
 }

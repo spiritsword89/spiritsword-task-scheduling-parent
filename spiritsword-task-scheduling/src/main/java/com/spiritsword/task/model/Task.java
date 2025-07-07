@@ -18,6 +18,7 @@ public class Task implements Serializable {
     private int retryInterval;
     private String executor;
     private String handlerId;
+    private String handlerClass;
     private LocalDateTime created;
     private LocalDateTime updated;
     private int version;
@@ -148,6 +149,14 @@ public class Task implements Serializable {
 
     public void setNextTriggerTime(LocalDateTime nextTriggerTime) {
         this.nextTriggerTime = nextTriggerTime;
+    }
+
+    public String getHandlerClass() {
+        return handlerClass;
+    }
+
+    public void setHandlerClass(String handlerClass) {
+        this.handlerClass = handlerClass;
     }
 
     @Override

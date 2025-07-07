@@ -3,6 +3,8 @@ package com.spiritsword.repository;
 import com.spiritsword.task.model.Task;
 import com.spiritsword.task.model.TaskStateEnum;
 import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -14,6 +16,8 @@ import java.util.List;
 @Component
 @ConfigurationProperties(prefix = "spiritsword.datasource")
 public class TaskRepository {
+    private static final Logger logger = LoggerFactory.getLogger(TaskRepository.class);
+
     private String url;
     private String driver;
     private String username;
@@ -63,7 +67,7 @@ public class TaskRepository {
     }
 
     public int insertTask(Task task) {
-        String sql = "INSERT INTO TASK VALUES (null, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO TASK VALUES (null, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try {
             PreparedStatement pst = connection.prepareStatement(sql);
             pst.setString(1, task.getTaskName());
@@ -81,9 +85,11 @@ public class TaskRepository {
             pst.setTimestamp(13, Timestamp.valueOf(task.getCreated()));
             pst.setTimestamp(14, Timestamp.valueOf(task.getUpdated()));
             pst.setInt(15, task.getVersion());
+            pst.setString(16, task.getHandlerClass());
 
             return pst.executeUpdate();
         } catch (SQLException e) {
+            logger.error(e.getMessage());
             throw new RuntimeException(e);
         }
     }
@@ -98,6 +104,7 @@ public class TaskRepository {
             pst.setInt(4, taskId);
             return pst.executeUpdate();
         } catch (SQLException e) {
+            logger.error(e.getMessage());
             throw new RuntimeException(e);
         }
     }
@@ -133,13 +140,14 @@ public class TaskRepository {
                 task.setCreated(rs.getTimestamp("created").toLocalDateTime());
                 task.setUpdated(rs.getTimestamp("updated").toLocalDateTime());
                 task.setVersion(rs.getInt("version"));
+                task.setHandlerClass(rs.getString("handler_class"));
 
                 tasks.add(task);
             }
 
             return tasks;
-
         } catch (SQLException e) {
+            logger.error(e.getMessage());
             throw new RuntimeException(e);
         }
     }

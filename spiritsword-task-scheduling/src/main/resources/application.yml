@@ -7,3 +7,12 @@ spiritsword:
   thread:
     core: 5
     max: 10
+  registry:
+    host: 127.0.0.1
+    port: 18888
+    boss: 1
+    worker: 5
+    backlog: 128
+  task:
+    executor:
+      worker: 5
