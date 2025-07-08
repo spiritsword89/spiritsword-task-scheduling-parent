@@ -1,6 +1,6 @@
 package com.spiritsword.config;
 
-import com.spiritsword.task.excutor.AbstractTaskExecutor;
+import com.spiritsword.task.excutor.BaseTaskExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -24,7 +24,7 @@ public class TaskExecutorBeanPostProcessor implements BeanPostProcessor {
             }
 
             try {
-                Field field = bean.getClass().getDeclaredField(AbstractTaskExecutor.EXECUTOR_ID_FIELD);
+                Field field = bean.getClass().getDeclaredField(BaseTaskExecutor.EXECUTOR_ID_FIELD);
                 field.set(bean, executorId);
             } catch (NoSuchFieldException | IllegalAccessException e) {
                 logger.error(e.getMessage(), e);

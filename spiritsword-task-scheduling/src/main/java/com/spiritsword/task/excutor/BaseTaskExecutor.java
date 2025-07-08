@@ -9,9 +9,7 @@ import com.spiritsword.task.model.MessageType;
 import com.spiritsword.task.model.TaskRequest;
 import com.spiritsword.task.model.TaskResult;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
@@ -20,12 +18,16 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.core.env.Environment;
+
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
-public abstract class AbstractTaskExecutor implements TaskExecutor, InitializingBean, EnvironmentAware {
+public abstract class BaseTaskExecutor implements TaskExecutor, InitializingBean, EnvironmentAware {
 
-    private static final Logger logger = LoggerFactory.getLogger(AbstractTaskExecutor.class);
+    private static final Logger logger = LoggerFactory.getLogger(BaseTaskExecutor.class);
     public static final String EXECUTOR_ID_FIELD = "executorId";
 
     private String executorId;
@@ -36,6 +38,8 @@ public abstract class AbstractTaskExecutor implements TaskExecutor, Initializing
     private Channel channel;
     private NioEventLoopGroup nioEventLoopGroup;
     private Map<String, TaskHandler> handlers = new HashMap<>();
+    private List<ChannelInboundHandler> customChannelInboundHandlers = new ArrayList<>();
+    private List<ChannelOutboundHandler> customChannelOutboundHandlers = new ArrayList<>();
     private long lastActiveTime;
 
     @Override
@@ -74,6 +78,15 @@ public abstract class AbstractTaskExecutor implements TaskExecutor, Initializing
                         protected void initChannel(SocketChannel socketChannel) throws Exception {
                             socketChannel.pipeline().addLast(new ByteToJsonMessageDecoder());
                             socketChannel.pipeline().addLast(new JsonMessageToByteEncoder());
+
+                            for(ChannelInboundHandler channelInboundHandler : customChannelInboundHandlers){
+                                socketChannel.pipeline().addLast(channelInboundHandler);
+                            }
+
+                            for(ChannelOutboundHandler channelOutboundHandler : customChannelOutboundHandlers){
+                                socketChannel.pipeline().addLast(channelOutboundHandler);
+                            }
+
                             socketChannel.pipeline().addLast(executorClientHandler);
                         }
                     });
@@ -82,6 +95,11 @@ public abstract class AbstractTaskExecutor implements TaskExecutor, Initializing
                 if (future.isSuccess()) {
                     ChannelFuture cf = (ChannelFuture) future;
                     this.channel = cf.channel();
+                    this.discoverHandlers();
+                } else {
+                    this.channel = null;
+                    this.handlers.clear();
+                    reconnect();
                 }
             });
 
@@ -92,6 +110,15 @@ public abstract class AbstractTaskExecutor implements TaskExecutor, Initializing
         }finally {
             nioEventLoopGroup.shutdownGracefully();
         }
+    }
+
+    private void discoverHandlers() {
+
+    }
+
+    @Override
+    public void reconnect() {
+        nioEventLoopGroup.schedule(this::connect, 5, TimeUnit.SECONDS);
     }
 
     @Override
@@ -120,6 +147,11 @@ public abstract class AbstractTaskExecutor implements TaskExecutor, Initializing
     }
 
     @Override
+    public double getLoad() {
+        return 0.7;
+    }
+
+    @Override
     public boolean isHealthy() {
         return this.channel.isActive() && ((lastActiveTime + 1000 * 60) > System.currentTimeMillis());
     }
@@ -145,7 +177,7 @@ public abstract class AbstractTaskExecutor implements TaskExecutor, Initializing
         String handlerId = payload.getHandlerId();
         TaskHandler handler = this.handlers.get(handlerId);
         if(handler != null && handler.getClass().getName().equals(payload.getHandlerClass())){
-            beforeExecute();
+            beforeExecute(channelMessage);
 
             TaskResult result = handler.handle(payload.getParams());
             channelMessage.setPayload(result);
@@ -156,6 +188,14 @@ public abstract class AbstractTaskExecutor implements TaskExecutor, Initializing
         }
     }
 
-    protected abstract void beforeExecute();
+    public void addCustomInboundHandler(ChannelInboundHandler handler) {
+        this.customChannelInboundHandlers.add(handler);
+    }
+
+    public void addCustomOutboundHandler(ChannelOutboundHandler handler) {
+        this.customChannelOutboundHandlers.add(handler);
+    }
+
+    protected abstract void beforeExecute(ChannelMessage channelMessage);
     protected abstract void afterExecute();
 }

@@ -1,10 +1,11 @@
 package com.spiritsword.registry;
 
+import com.spiritsword.handler.ByteToJsonMessageDecoder;
+import com.spiritsword.handler.JsonMessageToByteEncoder;
+import com.spiritsword.handler.RegistryInboundHandler;
 import com.spiritsword.task.model.ExecutorInfo;
-import com.spiritsword.task.model.SchedulerInfo;
-import com.spiritsword.task.model.Task;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -14,18 +15,13 @@ import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @Component
 public class ExecutorRegistry {
     private static final Logger logger = LoggerFactory.getLogger(ExecutorRegistry.class);
 
-    private SchedulerInfo schedulerInfo;
-    private Map<String, Channel> executorChannelMap = new HashMap<>();
     private Map<String, ExecutorInfo> executorInfoMap = new HashMap<>();
 
     @PostConstruct
@@ -41,39 +37,23 @@ public class ExecutorRegistry {
             serverBootstrap.group(boss, worker)
                     .channel(NioServerSocketChannel.class)
                     .option(ChannelOption.SO_BACKLOG, 128)
-                    .childOption(ChannelOption.SO_KEEPALIVE, true).childHandler(new ChannelInitializer<SocketChannel>() {
+                    .childOption(ChannelOption.SO_KEEPALIVE, true)
+                    .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         protected void initChannel(SocketChannel socketChannel) throws Exception {
-
+                            socketChannel.pipeline().addLast(new JsonMessageToByteEncoder());
+                            socketChannel.pipeline().addLast(new ByteToJsonMessageDecoder());
+                            socketChannel.pipeline().addLast(new RegistryInboundHandler(new RegistryService()));
                         }
                     });
 
+            ChannelFuture future = serverBootstrap.bind(11111).sync();
+            future.channel().closeFuture().sync();
         }catch (Exception e){
             logger.error(e.getMessage(),e);
         }finally {
             boss.shutdownGracefully();
             worker.shutdownGracefully();
         }
-    }
-
-    public void validateExecutors() {
-
-    }
-
-    public List<ExecutorInfo> getExecutorInfo(){
-        validateExecutors();
-        return new ArrayList<>(executorInfoMap.values());
-    }
-
-    public void registerScheduler(String id, Channel channel) {
-
-    }
-
-    public void registerExecutor(String id, Channel channel) {
-
-    }
-
-    public void dispatch(Task task) {
-
     }
 }

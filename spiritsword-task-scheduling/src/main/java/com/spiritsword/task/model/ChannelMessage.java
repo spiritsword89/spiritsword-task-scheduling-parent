@@ -6,6 +6,14 @@ public class ChannelMessage {
     private String taskId;
     private Object payload;
 
+    public ChannelMessage() {
+
+    }
+
+    public ChannelMessage(MessageType messageType) {
+        this.messageType = messageType;
+    }
+
     public ChannelMessage(MessageType messageType, String clientId, String taskId, Object payload) {
         this.messageType = messageType;
         this.executorId = clientId;

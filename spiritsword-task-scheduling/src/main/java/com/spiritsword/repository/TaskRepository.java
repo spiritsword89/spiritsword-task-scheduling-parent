@@ -2,7 +2,6 @@ package com.spiritsword.repository;
 
 import com.spiritsword.task.model.Task;
 import com.spiritsword.task.model.TaskStateEnum;
-import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -15,57 +14,10 @@ import java.util.List;
 
 @Component
 @ConfigurationProperties(prefix = "spiritsword.datasource")
-public class TaskRepository {
+public class TaskRepository extends BaseRepository{
     private static final Logger logger = LoggerFactory.getLogger(TaskRepository.class);
 
-    private String url;
-    private String driver;
-    private String username;
-    private String password;
-
-    Connection connection;
-
-    public String getUrl() {
-        return url;
-    }
-
-    public void setUrl(String url) {
-        this.url = url;
-    }
-
-    public String getDriver() {
-        return driver;
-    }
-
-    public void setDriver(String driver) {
-        this.driver = driver;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    @PostConstruct
-    public void connect() throws ClassNotFoundException {
-        try {
-            connection = DriverManager.getConnection(url, username, password);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
+    @Override
     public int insertTask(Task task) {
         String sql = "INSERT INTO TASK VALUES (null, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try {
@@ -94,6 +46,7 @@ public class TaskRepository {
         }
     }
 
+    @Override
     public int updateTask(TaskStateEnum taskState, LocalDateTime lastTriggerTime, LocalDateTime nextTriggerTime, int taskId) {
         String sql = "UPDATE TASK SET task_state = ?, last_trigger_time = ?, next_trigger_time = ? WHERE id = ?";
         try {
@@ -110,6 +63,7 @@ public class TaskRepository {
     }
 
     @SuppressWarnings("all")
+    @Override
     public List<Task> findTasksAboutDue() {
         String sql = "SELECT * FROM TASK WHERE task_state = ? AND next_trigger_time > ? AND next_trigger_time < ?";
         try {
