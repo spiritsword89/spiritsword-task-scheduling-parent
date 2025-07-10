@@ -4,10 +4,8 @@ import com.spiritsword.handler.ByteToJsonMessageDecoder;
 import com.spiritsword.handler.JsonMessageToByteEncoder;
 import com.spiritsword.handler.SchedulerClientHandler;
 import com.spiritsword.handler.SchedulerServerHandler;
-import com.spiritsword.repository.Repository;
 import com.spiritsword.task.model.ChannelMessage;
 import com.spiritsword.task.model.MessageType;
-import com.spiritsword.task.model.Task;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -23,25 +21,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 import java.util.concurrent.*;
 
 @Component
 public class TaskScheduler {
     private static final Logger logger = LoggerFactory.getLogger(TaskScheduler.class);
-
-    @Autowired
-    private Repository taskRepository;
-    @Autowired
-    private Executor threadExecutor;
-    private List<Task> cacheTasks;
-
     private ScheduledFuture<?> scheduledSynchronizeRegistryFuture;
-    private ScheduledFuture<?> scheduledPullTaskFuture;
-    private StandaloneExecutorManager executorManager = new StandaloneExecutorManager();
     private ScheduledExecutorService  scheduledExecutorService = Executors.newScheduledThreadPool(2);
     private Channel registryChannel;
+
+    @Autowired
+    private TaskDistributor taskDistributor;
 
     @PostConstruct
     public void start() {
@@ -61,7 +51,7 @@ public class TaskScheduler {
                 protected void initChannel(SocketChannel socketChannel) throws Exception {
                     socketChannel.pipeline().addLast(new JsonMessageToByteEncoder());
                     socketChannel.pipeline().addLast(new ByteToJsonMessageDecoder());
-                    socketChannel.pipeline().addLast(new SchedulerClientHandler(TaskScheduler.this.executorManager));
+                    socketChannel.pipeline().addLast(new SchedulerClientHandler(TaskScheduler.this.taskDistributor.getExecutorManager()));
                 }
             });
 
@@ -93,14 +83,6 @@ public class TaskScheduler {
         this.scheduledSynchronizeRegistryFuture = scheduledExecutorService.scheduleAtFixedRate(this::sendPullRequest, initialDelay, interval, timeUnit);
     }
 
-    public void pullingTasksFromRepository(int initialDelay, int interval, TimeUnit timeUnit) {
-        if(this.scheduledPullTaskFuture != null) {
-            this.scheduledPullTaskFuture.cancel(false);
-        }
-        this.scheduledPullTaskFuture = scheduledExecutorService.scheduleAtFixedRate(() -> {
-            List<Task> tasksAboutDue = taskRepository.findTasksAboutDue();
-        }, initialDelay, interval, timeUnit);
-    }
 
     public void reconnect() {
 

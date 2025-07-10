@@ -23,9 +23,14 @@ public class TaskExecutorBeanPostProcessor implements BeanPostProcessor {
                 executorId = "executor-" + bean.getClass().getSimpleName();
             }
 
+            String executorType = annotation.executorType() != null ? annotation.executorType() : null;
+
             try {
-                Field field = bean.getClass().getDeclaredField(BaseTaskExecutor.EXECUTOR_ID_FIELD);
-                field.set(bean, executorId);
+                Field executorIdField = bean.getClass().getDeclaredField(BaseTaskExecutor.EXECUTOR_ID_FIELD);
+                executorIdField.set(bean, executorId);
+
+                Field executorTypeField = bean.getClass().getDeclaredField(BaseTaskExecutor.EXECUTOR_TYPE_FIELD);
+                executorTypeField.set(bean, executorType);
             } catch (NoSuchFieldException | IllegalAccessException e) {
                 logger.error(e.getMessage(), e);
                 throw new RuntimeException(e);

@@ -1,7 +1,7 @@
 package com.spiritsword.handler;
 
 import com.alibaba.fastjson.JSON;
-import com.spiritsword.scheduler.StandaloneExecutorManager;
+import com.spiritsword.scheduler.ExecutorManager;
 import com.spiritsword.task.model.ChannelMessage;
 import com.spiritsword.task.model.ExecutorInfo;
 import com.spiritsword.task.model.MessageType;
@@ -14,9 +14,9 @@ import io.netty.channel.SimpleChannelInboundHandler;
  */
 public class SchedulerClientHandler extends SimpleChannelInboundHandler<ChannelMessage> {
 
-    private StandaloneExecutorManager executorManager;
+    private ExecutorManager executorManager;
 
-    public SchedulerClientHandler(StandaloneExecutorManager executorManager) {
+    public SchedulerClientHandler(ExecutorManager executorManager) {
         this.executorManager = executorManager;
     }
 

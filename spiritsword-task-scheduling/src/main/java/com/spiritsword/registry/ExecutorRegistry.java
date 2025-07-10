@@ -3,7 +3,6 @@ package com.spiritsword.registry;
 import com.spiritsword.handler.ByteToJsonMessageDecoder;
 import com.spiritsword.handler.JsonMessageToByteEncoder;
 import com.spiritsword.handler.RegistryInboundHandler;
-import com.spiritsword.task.model.ExecutorInfo;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -15,14 +14,10 @@ import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import java.util.HashMap;
-import java.util.Map;
 
 @Component
 public class ExecutorRegistry {
     private static final Logger logger = LoggerFactory.getLogger(ExecutorRegistry.class);
-
-    private Map<String, ExecutorInfo> executorInfoMap = new HashMap<>();
 
     @PostConstruct
     public void initialize() {

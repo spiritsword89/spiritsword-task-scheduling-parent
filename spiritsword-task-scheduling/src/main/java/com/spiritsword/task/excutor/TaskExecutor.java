@@ -6,6 +6,7 @@ import io.netty.channel.Channel;
 
 public interface TaskExecutor {
     public String getExecutorId();
+    public String getExecutorType();
     public void execute(ChannelMessage channelMessage);
     public boolean supports(String handlerClass);
     public double getLoad();

@@ -5,7 +5,7 @@ import java.util.List;
 
 public class ExecutorInfo implements Serializable {
     private String executorId;
-    private String executorType;
+    private String executorTaskType;
     private List<String> handlerClassList;
     private String host;
     private int port;
@@ -23,12 +23,12 @@ public class ExecutorInfo implements Serializable {
         this.executorId = executorId;
     }
 
-    public String getExecutorType() {
-        return executorType;
+    public String getExecutorTaskType() {
+        return executorTaskType;
     }
 
-    public void setExecutorType(String executorType) {
-        this.executorType = executorType;
+    public void setExecutorTaskType(String executorTaskType) {
+        this.executorTaskType = executorTaskType;
     }
 
     public long getLastHeartbeat() {
@@ -53,5 +53,17 @@ public class ExecutorInfo implements Serializable {
 
     public void setPort(int port) {
         this.port = port;
+    }
+
+    public List<String> getHandlerClassList() {
+        return handlerClassList;
+    }
+
+    public void setHandlerClassList(List<String> handlerClassList) {
+        this.handlerClassList = handlerClassList;
+    }
+
+    public boolean supports(String handlerClassName) {
+        return this.handlerClassList.contains(handlerClassName) && isAvailable();
     }
 }

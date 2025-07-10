@@ -9,7 +9,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public abstract class BaseRepository implements Repository {
-    private static final Logger logger = LoggerFactory.getLogger(TaskRepository.class);
+    private static final Logger logger = LoggerFactory.getLogger(MySqlRepository.class);
     private String url;
     private String driver;
     private String username;
@@ -55,6 +55,7 @@ public abstract class BaseRepository implements Repository {
         try {
             connection = DriverManager.getConnection(url, username, password);
         } catch (SQLException e) {
+            logger.error(e.getMessage());
             throw new RuntimeException(e);
         }
     }

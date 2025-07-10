@@ -31,9 +31,11 @@ public abstract class BaseTaskExecutor implements TaskExecutor, InitializingBean
 
     private static final Logger logger = LoggerFactory.getLogger(BaseTaskExecutor.class);
     public static final String EXECUTOR_ID_FIELD = "executorId";
+    public static final String EXECUTOR_TYPE_FIELD = "executorType";
 
     private ApplicationContext context;
     private String executorId;
+    private String executorType;
     private Environment environment;
     private int workerSize = 3;
     private String registryHost;
@@ -54,8 +56,9 @@ public abstract class BaseTaskExecutor implements TaskExecutor, InitializingBean
         return executorId;
     }
 
-    public void setExecutorId(String executorId) {
-        this.executorId = executorId;
+    @Override
+    public String getExecutorType() {
+        return executorType;
     }
 
     @PostConstruct
@@ -244,13 +247,14 @@ public abstract class BaseTaskExecutor implements TaskExecutor, InitializingBean
 
     @Override
     public void execute(ChannelMessage channelMessage) {
-        TaskRequest payload = (TaskRequest) channelMessage.getPayload();
-        String handlerId = payload.getHandlerId();
+        TaskRequest taskRequest = (TaskRequest) channelMessage.getPayload();
+        String handlerId = taskRequest.getHandlerId();
         TaskHandler handler = this.handlers.get(handlerId);
-        if(handler != null && handler.getClass().getName().equals(payload.getHandlerClass())){
+        if(handler != null && handler.getClass().getName().equals(taskRequest.getHandlerClass())){
             beforeExecute(channelMessage);
 
-            TaskResult result = handler.handle(payload.getParams());
+            TaskResult result = handler.handle(taskRequest.getParams());
+
             channelMessage.setPayload(result);
             channelMessage.setMessageType(MessageType.TASK_RESPONSE);
             schedulerChannel.writeAndFlush(channelMessage);

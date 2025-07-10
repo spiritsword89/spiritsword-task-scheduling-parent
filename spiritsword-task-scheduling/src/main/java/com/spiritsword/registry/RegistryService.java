@@ -21,8 +21,8 @@ public class RegistryService {
         registryMap.computeIfAbsent(taskType, k -> new CopyOnWriteArrayList<>()).add(executor);
     }
 
-    public List<ExecutorInfo> getExecutors(String taskType) {
-        return registryMap.getOrDefault(taskType, Collections.emptyList());
+    public List<ExecutorInfo> getExecutors(String executorTaskType) {
+        return registryMap.getOrDefault(executorTaskType, Collections.emptyList());
     }
 
     public List<ExecutorInfo> getAllAvailableExecutors() {

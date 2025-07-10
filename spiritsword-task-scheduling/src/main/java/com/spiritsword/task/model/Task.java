@@ -15,8 +15,9 @@ public class Task implements Serializable {
     private LocalDateTime nextTriggerTime;
     private int retryCount;
     private int maxRetryCount;
-    private int retryInterval;
+    private long retryInterval;
     private String executor;
+    private String executorType;
     private String handlerId;
     private String handlerClass;
     private LocalDateTime created;
@@ -87,11 +88,11 @@ public class Task implements Serializable {
         this.maxRetryCount = maxRetryCount;
     }
 
-    public int getRetryInterval() {
+    public long getRetryInterval() {
         return retryInterval;
     }
 
-    public void setRetryInterval(int retryInterval) {
+    public void setRetryInterval(long retryInterval) {
         this.retryInterval = retryInterval;
     }
 
@@ -157,6 +158,14 @@ public class Task implements Serializable {
 
     public void setHandlerClass(String handlerClass) {
         this.handlerClass = handlerClass;
+    }
+
+    public String getExecutorType() {
+        return executorType;
+    }
+
+    public void setExecutorType(String executorType) {
+        this.executorType = executorType;
     }
 
     @Override

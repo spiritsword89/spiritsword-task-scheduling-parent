@@ -12,4 +12,6 @@ public interface ExecutorManager {
     public void registerExecutor(ChannelMessage channelMessage, Channel channel);
     public void removeExecutor(String executorId);
     public ExecutorInfo getExecutorInfo(String executorId);
+    public ExecutorInfo selectExecutorInfoByType(String executorType, String handlerClassName);
+    public void dispatch(String executorId, ChannelMessage channelMessage);
 }

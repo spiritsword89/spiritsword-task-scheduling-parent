@@ -11,4 +11,5 @@ import java.lang.annotation.*;
 @Component
 public @interface SpiritswordExecutor {
     String executorId() default "";
+    String executorType() default "";
 }
