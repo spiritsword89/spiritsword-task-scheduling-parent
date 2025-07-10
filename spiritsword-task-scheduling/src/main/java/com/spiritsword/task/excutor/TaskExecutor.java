@@ -10,8 +10,8 @@ public interface TaskExecutor {
     public boolean supports(String handlerClass);
     public double getLoad();
     public boolean isHealthy();
-    public Channel channel();
-    public void registerHandler(TaskHandler handler);
+    public void registerHandler(String handlerId, TaskHandler handler);
     public void removeHandler(String handlerId);
-    public void reconnect();
+    public void reconnectRegistry();
+    public void reconnectScheduler();
 }

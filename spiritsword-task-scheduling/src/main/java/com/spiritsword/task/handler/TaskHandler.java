@@ -7,5 +7,6 @@ import java.util.Map;
 
 public interface TaskHandler {
     public TaskResult handle(Map<String, Object> params);
-    public String getHandlerId();
+    public String handlerTaskDescription();
+    public String handlerTaskName();
 }

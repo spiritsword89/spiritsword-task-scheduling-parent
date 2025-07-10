@@ -7,6 +7,9 @@ spiritsword:
   thread:
     core: 5
     max: 10
+  scheduler:
+    host: 127.0.0.1
+    port: 11111
   registry:
     host: 127.0.0.1
     port: 18888

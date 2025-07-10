@@ -1,6 +1,11 @@
 package com.spiritsword.task.model;
 
+import com.alibaba.fastjson2.annotation.JSONField;
+import com.spiritsword.task.model.serialize.MessageTypeDeserializer;
+import com.spiritsword.task.model.serialize.MessageTypeSerializer;
+
 public class ChannelMessage {
+    @JSONField(serializeUsing = MessageTypeSerializer.class,  deserializeUsing = MessageTypeDeserializer.class)
     private MessageType messageType;
     private String executorId;
     private String taskId;

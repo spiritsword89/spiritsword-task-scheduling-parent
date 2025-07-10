@@ -6,6 +6,5 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 public @interface SpiritswordTaskHandler {
-    String executor() default "";
-    String handlerId() default "";
+    String executorId() default "";
 }

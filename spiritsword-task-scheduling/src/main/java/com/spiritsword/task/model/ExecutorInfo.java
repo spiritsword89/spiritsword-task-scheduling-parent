@@ -1,14 +1,19 @@
 package com.spiritsword.task.model;
 
+import java.io.Serializable;
 import java.util.List;
 
-public class ExecutorInfo {
+public class ExecutorInfo implements Serializable {
     private String executorId;
     private String executorType;
     private List<String> handlerClassList;
     private String host;
     private int port;
     private long lastHeartbeat;
+
+    public boolean isAvailable() {
+        return lastHeartbeat + 5 * 60 * 1000 > System.currentTimeMillis();
+    }
 
     public String getExecutorId() {
         return executorId;
