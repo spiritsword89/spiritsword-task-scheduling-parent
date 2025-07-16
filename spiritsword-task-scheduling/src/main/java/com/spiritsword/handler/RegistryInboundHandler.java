@@ -1,6 +1,7 @@
 package com.spiritsword.handler;
 
-import com.spiritsword.registry.RegistryService;
+import com.alibaba.fastjson.JSON;
+import com.spiritsword.scheduler.registry.RegistryService;
 import com.spiritsword.task.model.ChannelMessage;
 import com.spiritsword.task.model.ExecutorInfo;
 import com.spiritsword.task.model.MessageType;
@@ -30,7 +31,7 @@ public class RegistryInboundHandler extends SimpleChannelInboundHandler<ChannelM
             List<ExecutorInfo> allAvailableExecutors = registryService.getAllAvailableExecutors();
             ChannelMessage response = new ChannelMessage();
             response.setMessageType(MessageType.EXECUTOR_LIST);
-            response.setPayload(allAvailableExecutors);
+            response.setPayload(JSON.toJSONString(allAvailableExecutors));
             this.schedulerChannel.writeAndFlush(response);
         }
     }

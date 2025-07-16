@@ -38,8 +38,8 @@ public class ByteToJsonMessageDecoder extends ByteToMessageDecoder {
             TaskResult taskResult = payload.toJavaObject(TaskResult.class);
             channelMessage.setPayload(taskResult);
         }else if (messageType.equals(MessageType.EXECUTOR_LIST)){
-            JSONObject payload = (JSONObject) channelMessage.getPayload();
-            List<ExecutorInfo> executorInfos = JSON.parseArray(payload.toJSONString(), ExecutorInfo.class);
+            String jsonString = channelMessage.getPayload().toString();
+            List<ExecutorInfo> executorInfos = JSON.parseArray(jsonString, ExecutorInfo.class);
             channelMessage.setPayload(executorInfos);
         }else {
             channelMessage.setPayload(null);

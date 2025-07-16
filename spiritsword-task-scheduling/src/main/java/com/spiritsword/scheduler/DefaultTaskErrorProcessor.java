@@ -1,6 +1,6 @@
 package com.spiritsword.scheduler;
 
-import com.spiritsword.repository.Repository;
+import com.spiritsword.scheduler.repository.Repository;
 import com.spiritsword.task.model.Task;
 
 public class DefaultTaskErrorProcessor implements TaskErrorProcessor {

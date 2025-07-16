@@ -24,7 +24,9 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.core.env.Environment;
 
+import java.net.InetSocketAddress;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 public abstract class BaseTaskExecutor implements TaskExecutor, InitializingBean, EnvironmentAware, ApplicationContextAware {
@@ -44,7 +46,8 @@ public abstract class BaseTaskExecutor implements TaskExecutor, InitializingBean
     private int schedulerPort;
     private Channel registryChannel;
     private Channel schedulerChannel;
-    private NioEventLoopGroup nioEventLoopGroup;;
+    private NioEventLoopGroup nioEventLoopGroup;
+    private CountDownLatch executorRegisterCountDown = new CountDownLatch(2);
     private Map<String, TaskHandler> handlers = new HashMap<>();
     private List<String> handlerClassNames = new ArrayList<>();
     private List<ChannelInboundHandler> customChannelInboundHandlers = new ArrayList<>();
@@ -53,12 +56,12 @@ public abstract class BaseTaskExecutor implements TaskExecutor, InitializingBean
 
     @Override
     public String getExecutorId() {
-        return executorId;
+        return this.executorId;
     }
 
     @Override
     public String getExecutorType() {
-        return executorType;
+        return this.executorType;
     }
 
     @PostConstruct
@@ -66,6 +69,13 @@ public abstract class BaseTaskExecutor implements TaskExecutor, InitializingBean
         nioEventLoopGroup = new NioEventLoopGroup(this.workerSize);
         new Thread(this::connectRegistry).start();
         new Thread(this::connectScheduler).start();
+        try {
+            executorRegisterCountDown.await();
+            sendRegisterMessage(MessageType.EXECUTOR_REGISTER);
+        } catch (InterruptedException e) {
+            logger.error(e.getMessage());
+            throw new RuntimeException(e);
+        }
     }
 
     private void connectScheduler() {
@@ -110,6 +120,7 @@ public abstract class BaseTaskExecutor implements TaskExecutor, InitializingBean
                 if (future.isSuccess()) {
                     ChannelFuture cf = (ChannelFuture) future;
                     this.schedulerChannel = cf.channel();
+                    this.executorRegisterCountDown.countDown();
                 } else {
                     this.schedulerChannel = null;
                     this.handlers.clear();
@@ -159,9 +170,11 @@ public abstract class BaseTaskExecutor implements TaskExecutor, InitializingBean
 
             ChannelFuture channelFuture = bootstrap.connect(this.registryHost, this.registryPort).addListener(future -> {
                 if (future.isSuccess()) {
+                    System.out.println("Executor connected to Scheduler successfully");
                     ChannelFuture cf = (ChannelFuture) future;
                     this.registryChannel = cf.channel();
                     this.discoverHandlers();
+                    this.executorRegisterCountDown.countDown();
                 } else {
                     reconnectRegistry();
                 }
@@ -174,6 +187,23 @@ public abstract class BaseTaskExecutor implements TaskExecutor, InitializingBean
         }finally {
             nioEventLoopGroup.shutdownGracefully();
         }
+    }
+
+    private void sendRegisterMessage(MessageType messageType) {
+        InetSocketAddress socketAddress = (InetSocketAddress )registryChannel.localAddress();
+        ChannelMessage.ChannelMessageBuilder builder = new ChannelMessage.ChannelMessageBuilder();
+        ChannelMessage registrationMessage = builder
+                .executorId(this.executorId)
+                .executorTaskType(this.executorType)
+                .messageType(messageType)
+                .host(socketAddress.getAddress().getHostAddress())
+                .port(socketAddress.getPort())
+                .handlerClassList(this.handlerClassNames)
+                .lastHeartbeat(System.currentTimeMillis())
+                .build();
+
+        registryChannel.writeAndFlush(registrationMessage);
+        schedulerChannel.writeAndFlush(registrationMessage);
     }
 
     private void discoverHandlers() {

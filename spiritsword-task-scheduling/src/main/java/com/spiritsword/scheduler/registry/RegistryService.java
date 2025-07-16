@@ -1,4 +1,4 @@
-package com.spiritsword.registry;
+package com.spiritsword.scheduler.registry;
 
 import com.spiritsword.task.model.ExecutorInfo;
 

@@ -16,24 +16,30 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+
+import java.util.Map;
 import java.util.concurrent.*;
 
-@Component
-public class TaskScheduler {
+
+public class TaskScheduler implements InitializingBean, ApplicationContextAware {
     private static final Logger logger = LoggerFactory.getLogger(TaskScheduler.class);
+    private ApplicationContext applicationContext;
     private ScheduledFuture<?> scheduledSynchronizeRegistryFuture;
     private ScheduledExecutorService  scheduledExecutorService = Executors.newScheduledThreadPool(2);
     private Channel registryChannel;
-
-    @Autowired
     private TaskDistributor taskDistributor;
+    private ResponseProcessor responseProcessor;
 
-    @PostConstruct
+    public TaskScheduler(TaskDistributor taskDistributor) {
+        this.taskDistributor = taskDistributor;
+    }
+
     public void start() {
         new Thread(this::startSchedulerServer).start();
         new Thread(this::connectRegistry).start();
@@ -47,16 +53,17 @@ public class TaskScheduler {
                     .group(worker)
                     .channel(NioSocketChannel.class)
                     .handler(new ChannelInitializer<SocketChannel>() {
-                @Override
-                protected void initChannel(SocketChannel socketChannel) throws Exception {
-                    socketChannel.pipeline().addLast(new JsonMessageToByteEncoder());
-                    socketChannel.pipeline().addLast(new ByteToJsonMessageDecoder());
-                    socketChannel.pipeline().addLast(new SchedulerClientHandler(TaskScheduler.this.taskDistributor.getExecutorManager()));
-                }
+                        @Override
+                        protected void initChannel(SocketChannel socketChannel) throws Exception {
+                            socketChannel.pipeline().addLast(new JsonMessageToByteEncoder());
+                            socketChannel.pipeline().addLast(new ByteToJsonMessageDecoder());
+                            socketChannel.pipeline().addLast(new SchedulerClientHandler(TaskScheduler.this.taskDistributor.getExecutorManager()));
+                        }
             });
 
             ChannelFuture channelFuture = bootstrap.connect("127.0.0.1", 11111).addListener(future -> {
                 if(future.isSuccess()){
+                    System.out.println("Connected to Registry");
                     ChannelFuture cf = (ChannelFuture) future;
                     this.registryChannel = cf.channel();
                     registerToRegistryCentre();
@@ -115,14 +122,33 @@ public class TaskScheduler {
                         protected void initChannel(SocketChannel socketChannel) throws Exception {
                             socketChannel.pipeline().addLast(new JsonMessageToByteEncoder());
                             socketChannel.pipeline().addLast(new ByteToJsonMessageDecoder());
-                            socketChannel.pipeline().addLast(new SchedulerServerHandler());
+                            socketChannel.pipeline().addLast(new SchedulerServerHandler(TaskScheduler.this.taskDistributor.getExecutorManager(), responseProcessor));
                         }
                     });
-            ChannelFuture future = serverBootstrap.bind(9999).sync();
+            ChannelFuture future = serverBootstrap.bind(9999).addListener(f -> {
+                if(f.isSuccess()){
+                    System.out.println("Scheduler started");
+                    taskDistributor.pullingTasksFromRepository(1, 2,  TimeUnit.MINUTES);
+                    taskDistributor.startProcessTasks();
+                }
+            });
             future.channel().closeFuture().sync();
         }catch (Exception e){
             logger.error(e.getMessage());
             throw new RuntimeException("Server failed to start");
         }
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        Map<String, ResponseProcessor> beansOfType = this.applicationContext.getBeansOfType(ResponseProcessor.class);
+        if(!beansOfType.isEmpty()){
+            this.responseProcessor = beansOfType.values().iterator().next();
+        }
+    }
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        this.applicationContext = applicationContext;
     }
 }

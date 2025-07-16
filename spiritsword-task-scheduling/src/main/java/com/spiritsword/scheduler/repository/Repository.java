@@ -1,6 +1,7 @@
-package com.spiritsword.repository;
+package com.spiritsword.scheduler.repository;
 
 import com.spiritsword.task.model.Task;
+import com.spiritsword.task.model.TaskResult;
 import com.spiritsword.task.model.TaskStateEnum;
 
 import java.time.LocalDateTime;
@@ -14,4 +15,5 @@ public interface Repository {
     public List<Task> findTasksAboutDue(List<Integer> excludeTasks);
     public Task findTaskById(Integer taskId);
     public int updateRetryTask(LocalDateTime lastTriggerTime, int taskId);
+    public int updateTaskResult(TaskResult taskResult);
 }

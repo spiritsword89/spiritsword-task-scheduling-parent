@@ -1,6 +1,7 @@
-package com.spiritsword.repository;
+package com.spiritsword.scheduler.repository;
 
 import com.spiritsword.task.model.Task;
+import com.spiritsword.task.model.TaskResult;
 import com.spiritsword.task.model.TaskStateEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,7 +87,11 @@ public class MySqlRepository extends BaseRepository{
                 .map(id -> "?")
                 .collect(Collectors.joining(", "));
 
-        String sql = "SELECT * FROM TASK WHERE task_state IN ('READY', 'RETRY') AND next_trigger_time > ? AND next_trigger_time < ? AND id NOT IN ("+ placeholders +")";
+        String sql = "SELECT * FROM TASK WHERE task_state IN ('READY', 'RETRY') AND next_trigger_time > ? AND next_trigger_time < ?";
+
+        if(excludeTasks != null && !excludeTasks.isEmpty()) {
+            sql = sql + " AND id NOT IN ("+ placeholders +")";
+        }
 
         try {
             PreparedStatement pst = connection.prepareStatement(sql);
@@ -184,5 +189,10 @@ public class MySqlRepository extends BaseRepository{
                 throw new RuntimeException(e);
             }
         }
+    }
+
+    @Override
+    public int updateTaskResult(TaskResult taskResult) {
+        return 0;
     }
 }

@@ -1,4 +1,4 @@
-package com.spiritsword.repository;
+package com.spiritsword.scheduler.repository;
 
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;

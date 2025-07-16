@@ -1,6 +1,6 @@
 package com.spiritsword.config;
 
-import com.spiritsword.TaskSchedulingConfiguration;
+import com.spiritsword.scheduler.SchedulingServerConfiguration;
 import org.springframework.context.annotation.Import;
 
 import java.lang.annotation.*;
@@ -8,6 +8,6 @@ import java.lang.annotation.*;
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-@Import(TaskSchedulingConfiguration.class)
-public @interface EnableSpiritswordTaskScheduling {
+@Import(SchedulingServerConfiguration.class)
+public @interface EnableSpiritswordSchedulingServer {
 }

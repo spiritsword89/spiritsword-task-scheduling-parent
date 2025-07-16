@@ -1,4 +1,4 @@
-package com.spiritsword.registry;
+package com.spiritsword.scheduler.registry;
 
 import com.spiritsword.handler.ByteToJsonMessageDecoder;
 import com.spiritsword.handler.JsonMessageToByteEncoder;
@@ -42,7 +42,11 @@ public class ExecutorRegistry {
                         }
                     });
 
-            ChannelFuture future = serverBootstrap.bind(11111).sync();
+            ChannelFuture future = serverBootstrap.bind(11111).addListener(f -> {
+                if(f.isSuccess()){
+                    System.out.println("Registry started successfully");
+                }
+            });
             future.channel().closeFuture().sync();
         }catch (Exception e){
             logger.error(e.getMessage(),e);

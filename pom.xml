@@ -10,6 +10,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>spiritsword-task-scheduling</module>
+        <module>spiritsword-task-server</module>
     </modules>
 
     <properties>

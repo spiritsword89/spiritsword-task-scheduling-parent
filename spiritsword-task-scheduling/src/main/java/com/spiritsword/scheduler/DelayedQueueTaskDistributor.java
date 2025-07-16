@@ -1,20 +1,16 @@
 package com.spiritsword.scheduler;
 
 import com.spiritsword.exceptions.ExecutorNotFoundException;
-import com.spiritsword.repository.Repository;
+import com.spiritsword.scheduler.repository.Repository;
 import com.spiritsword.task.model.*;
 import com.spiritsword.utils.CronUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
-@Component
 public class DelayedQueueTaskDistributor implements TaskDistributor {
     private static Logger logger = LoggerFactory.getLogger(DelayedQueueTaskDistributor.class);
 
@@ -28,17 +24,25 @@ public class DelayedQueueTaskDistributor implements TaskDistributor {
 
     private DelayQueue<DelayedTask> delayedTaskQueue = new DelayQueue<>();
 
-    @Autowired
     private Repository repository;
 
-    @Autowired
     private Executor threadExecutor;
 
-    @Autowired
     private TaskErrorProcessor taskErrorProcessor;
 
+    public DelayedQueueTaskDistributor(Repository repository, Executor threadExecutor, ExecutorManager executorManager, TaskErrorProcessor taskErrorProcessor) {
+        this.repository = repository;
+        this.threadExecutor = threadExecutor;
+        this.taskErrorProcessor = taskErrorProcessor;
+        this.applyExecutorManager(executorManager);
+    }
+
+    public DelayedQueueTaskDistributor(ExecutorManager executorManager) {
+        this.applyExecutorManager(executorManager);
+    }
+
     @Override
-    public void processTasks() {
+    public void startProcessTasks() {
         new Thread(() -> {
             while(true) {
                 try {
@@ -133,9 +137,8 @@ public class DelayedQueueTaskDistributor implements TaskDistributor {
     }
 
     @Override
-    @Autowired
     public void applyExecutorManager(ExecutorManager executorManager) {
-        if(this.executorManager == null){
+        if(executorManager == null){
             throw new RuntimeException("Executor Manager is not found");
         }
         this.executorManager = executorManager;
