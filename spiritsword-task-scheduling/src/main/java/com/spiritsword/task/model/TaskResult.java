@@ -2,10 +2,10 @@ package com.spiritsword.task.model;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.Map;
 
 public class TaskResult implements Serializable {
     private String taskId;
-    private boolean success;
     private String handlerClass;
     private String message;
     private TaskResultEnum state;
@@ -14,20 +14,23 @@ public class TaskResult implements Serializable {
     private Date finishTime;
     private boolean retryable;
 
+    public static TaskResult buildResult(Map<String, Object> params, TaskResultEnum state, String handlerClass, String message) {
+        TaskResult taskResult = new TaskResult();
+        taskResult.setState(state);
+        taskResult.setFinishTime(new Date());
+        taskResult.setHandlerClass(handlerClass);
+        taskResult.setMessage(message);
+        taskResult.setTaskId(params.get("taskId").toString());
+
+        return taskResult;
+    }
+
     public String getTaskId() {
         return taskId;
     }
 
     public void setTaskId(String taskId) {
         this.taskId = taskId;
-    }
-
-    public boolean isSuccess() {
-        return success;
-    }
-
-    public void setSuccess(boolean success) {
-        this.success = success;
     }
 
     public String getHandlerClass() {

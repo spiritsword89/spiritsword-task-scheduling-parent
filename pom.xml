@@ -11,6 +11,8 @@
     <modules>
         <module>spiritsword-task-scheduling</module>
         <module>spiritsword-task-server</module>
+        <module>spiritsword-task-payment</module>
+        <module>spiritsword-task-invoice</module>
     </modules>
 
     <properties>

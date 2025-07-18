@@ -8,9 +8,9 @@ public class DelayedTask implements Delayed {
     private Task task;
     private long executeAt;
 
-    public DelayedTask(Task task, long delayMillis) {
+    public DelayedTask(Task task, long executeAt) {
         this.task = task;
-        this.executeAt = System.currentTimeMillis() + delayMillis;
+        this.executeAt = executeAt;
     }
 
     public DelayedTask() {}

@@ -7,7 +7,10 @@ import com.spiritsword.utils.CronUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
@@ -46,12 +49,14 @@ public class DelayedQueueTaskDistributor implements TaskDistributor {
         new Thread(() -> {
             while(true) {
                 try {
+                    logger.info("waiting for task.....");
                     Task task = cacheTasks.take();
+                    logger.info("task taken from blocking queue");
                     if(task.getTaskState().equals(TaskStateEnum.RUNNING)) {
                         continue;
                     }
                     // 2. 如果任务的nextTriggerTime已经小于目前时间，那证明任务要立即开始
-                    if (task.getNextTriggerTime() != null && task.getNextTriggerTime().getSecond() * 1000 < System.currentTimeMillis()) {
+                    if (task.getNextTriggerTime() == null || (task.getNextTriggerTime() != null && task.getNextTriggerTime().isBefore(LocalDateTime.now()))) {
                         threadExecutor.execute(() -> {
                             try {
                                 distributeTasks(task);
@@ -64,9 +69,8 @@ public class DelayedQueueTaskDistributor implements TaskDistributor {
                         });
                     } else {
                         // 3. 否则将还没到期的任务放进DelayedQueue，到期弹出执行
-                        long delayMillis = task.getNextTriggerTime().getSecond() * 1000 - System.currentTimeMillis();
                         repository.updateTask(TaskStateEnum.WAITING, task.getId());
-                        DelayedTask delayedTask = new DelayedTask(task, delayMillis);
+                        DelayedTask delayedTask = new DelayedTask(task, task.getNextTriggerTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
                         delayedTaskQueue.offer(delayedTask);
                     }
                 } catch (InterruptedException e) {
@@ -79,7 +83,7 @@ public class DelayedQueueTaskDistributor implements TaskDistributor {
 
     @Override
     public void distributeTasks(Task task) throws Exception {
-        if(validateTask(task)) {
+        if(!validateTask(task)) {
             //无效Task，需要删除 todo
             return;
         }
@@ -106,6 +110,8 @@ public class DelayedQueueTaskDistributor implements TaskDistributor {
 
         repository.updateTask(TaskStateEnum.RUNNING, LocalDateTime.now(), nextTriggerTime, task.getId());
 
+        Map<String,Object> params = new HashMap<>();
+        params.put("taskId", task.getId());
         ChannelMessage.ChannelMessageBuilder builder = new ChannelMessage.ChannelMessageBuilder();
         ChannelMessage channelMessage = builder
                 .messageType(MessageType.TASK_REQUEST)
@@ -146,7 +152,9 @@ public class DelayedQueueTaskDistributor implements TaskDistributor {
         new Thread(() -> {
             while(true) {
                 try {
+                    logger.info("waiting for delayed tasks to start");
                     DelayedTask delayedTask = delayedTaskQueue.take();
+                    logger.info("task taken from delayed queue");
                     threadExecutor.execute(() -> {
                         try {
                             distributeTasks(delayedTask.getTask());
@@ -174,7 +182,9 @@ public class DelayedQueueTaskDistributor implements TaskDistributor {
         }
 
         this.scheduledPullTaskFuture = scheduledExecutorService.scheduleAtFixedRate(() -> {
+            logger.info("start grabbing task from database");
             List<Task> tasksAboutDue = repository.findTasksAboutDue(cacheTasks.stream().map(Task::getId).collect(Collectors.toList()));
+            logger.info("Due tasks size: " + tasksAboutDue.size());
             addTasks(tasksAboutDue);
         }, initialDelay, interval, timeUnit);
     }

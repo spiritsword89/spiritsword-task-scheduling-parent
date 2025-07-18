@@ -3,6 +3,8 @@ package com.spiritsword.scheduler;
 import com.spiritsword.task.model.ChannelMessage;
 import com.spiritsword.task.model.ExecutorInfo;
 import io.netty.channel.Channel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,16 +12,18 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class StandaloneExecutorManager implements ExecutorManager {
+    private static final Logger log = LoggerFactory.getLogger(StandaloneExecutorManager.class.getName());
     private Map<String, Channel> executors = new ConcurrentHashMap<>();
     private List<ExecutorInfo> executorInfos = new ArrayList<>();
 
     @Override
     public void updateExecutorInfos(List<ExecutorInfo> executorInfos) {
-        if(!executorInfos.isEmpty()) {
-            validateExecutorInfos(executorInfos);
-        } else {
-            this.executorInfos = executorInfos;
-        }
+//        if(!executorInfos.isEmpty()) {
+//            validateExecutorInfos(executorInfos);
+//        } else {
+//
+//        }
+        this.executorInfos = executorInfos;
     }
 
     @Override
@@ -29,7 +33,9 @@ public class StandaloneExecutorManager implements ExecutorManager {
 
     @Override
     public void registerExecutor(ChannelMessage channelMessage, Channel channel) {
-        executors.put(channelMessage.getExecutorId(), channel);
+        log.info("Channel registered on Scheduler");
+        this.executors.put(channelMessage.getExecutorId(), channel);
+        log.info("Number of channels registered on scheduler: {}", this.executors.size() );
     }
 
     @Override

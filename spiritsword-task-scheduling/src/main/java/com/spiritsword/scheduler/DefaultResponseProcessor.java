@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
-public class DefaultResponseProcessor implements  ResponseProcessor {
+public class DefaultResponseProcessor implements ResponseProcessor {
 
     @Autowired
     private Repository repository;
@@ -15,7 +15,8 @@ public class DefaultResponseProcessor implements  ResponseProcessor {
     }
 
     @Override
-    public void process(TaskResult taskResult) {
+    public void process(TaskResult taskResult, ResponseProcessorChain responseProcessorChain) {
         repository.updateTaskResult(taskResult);
+        responseProcessorChain.doProcess(taskResult);
     }
 }

@@ -1,7 +1,7 @@
 package com.spiritsword.handler;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.alibaba.fastjson2.JSON;
 import com.spiritsword.task.model.*;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -41,7 +41,11 @@ public class ByteToJsonMessageDecoder extends ByteToMessageDecoder {
             String jsonString = channelMessage.getPayload().toString();
             List<ExecutorInfo> executorInfos = JSON.parseArray(jsonString, ExecutorInfo.class);
             channelMessage.setPayload(executorInfos);
-        }else {
+        }else if (messageType.equals(MessageType.EXECUTOR_REGISTER)){
+            String jsonString = channelMessage.getPayload().toString();
+            ExecutorInfo executorInfo = JSON.parseObject(jsonString, ExecutorInfo.class);
+            channelMessage.setPayload(executorInfo);
+        } else {
             channelMessage.setPayload(null);
         }
 

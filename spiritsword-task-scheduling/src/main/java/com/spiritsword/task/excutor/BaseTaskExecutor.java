@@ -29,7 +29,7 @@ import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-public abstract class BaseTaskExecutor implements TaskExecutor, InitializingBean, EnvironmentAware, ApplicationContextAware {
+public abstract class BaseTaskExecutor implements TaskExecutor, EnvironmentAware, ApplicationContextAware {
 
     private static final Logger logger = LoggerFactory.getLogger(BaseTaskExecutor.class);
     public static final String EXECUTOR_ID_FIELD = "executorId";
@@ -64,6 +64,14 @@ public abstract class BaseTaskExecutor implements TaskExecutor, InitializingBean
         return this.executorType;
     }
 
+    public void setExecutorType(String executorType) {
+        this.executorType = executorType;
+    }
+
+    public void setExecutorId(String executorId) {
+        this.executorId = executorId;
+    }
+
     @PostConstruct
     public void connect() {
         nioEventLoopGroup = new NioEventLoopGroup(this.workerSize);
@@ -76,6 +84,11 @@ public abstract class BaseTaskExecutor implements TaskExecutor, InitializingBean
             logger.error(e.getMessage());
             throw new RuntimeException(e);
         }
+    }
+
+    protected void updateCustomizeExecutorInfoToRegistry() {
+        ChannelMessage.ChannelMessageBuilder builder = new ChannelMessage.ChannelMessageBuilder();
+        builder.messageType(MessageType.EXECUTOR_STATE);
     }
 
     private void connectScheduler() {
@@ -118,6 +131,7 @@ public abstract class BaseTaskExecutor implements TaskExecutor, InitializingBean
 
             ChannelFuture channelFuture = bootstrap.connect(this.schedulerHost, this.schedulerPort).addListener(future -> {
                 if (future.isSuccess()) {
+                    System.out.println("Executor connected to scheduler");
                     ChannelFuture cf = (ChannelFuture) future;
                     this.schedulerChannel = cf.channel();
                     this.executorRegisterCountDown.countDown();
@@ -170,7 +184,7 @@ public abstract class BaseTaskExecutor implements TaskExecutor, InitializingBean
 
             ChannelFuture channelFuture = bootstrap.connect(this.registryHost, this.registryPort).addListener(future -> {
                 if (future.isSuccess()) {
-                    System.out.println("Executor connected to Scheduler successfully");
+                    System.out.println("Executor connected to registry successfully");
                     ChannelFuture cf = (ChannelFuture) future;
                     this.registryChannel = cf.channel();
                     this.discoverHandlers();
@@ -235,11 +249,6 @@ public abstract class BaseTaskExecutor implements TaskExecutor, InitializingBean
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
-        new Thread(this::connect).start();
-    }
-
-    @Override
     public boolean supports(String handlerClass) {
         for(Map.Entry<String, TaskHandler> mp : this.handlers.entrySet()) {
             TaskHandler handler = mp.getValue();
@@ -278,13 +287,11 @@ public abstract class BaseTaskExecutor implements TaskExecutor, InitializingBean
     @Override
     public void execute(ChannelMessage channelMessage) {
         TaskRequest taskRequest = (TaskRequest) channelMessage.getPayload();
-        String handlerId = taskRequest.getHandlerId();
+        String handlerId = taskRequest.getHandlerClass();
         TaskHandler handler = this.handlers.get(handlerId);
-        if(handler != null && handler.getClass().getName().equals(taskRequest.getHandlerClass())){
+        if(handler != null){
             beforeExecute(channelMessage);
-
             TaskResult result = handler.handle(taskRequest.getParams());
-
             channelMessage.setPayload(result);
             channelMessage.setMessageType(MessageType.TASK_RESPONSE);
             schedulerChannel.writeAndFlush(channelMessage);

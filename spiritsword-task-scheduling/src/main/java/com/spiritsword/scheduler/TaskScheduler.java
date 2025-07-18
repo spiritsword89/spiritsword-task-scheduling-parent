@@ -34,7 +34,7 @@ public class TaskScheduler implements InitializingBean, ApplicationContextAware 
     private ScheduledExecutorService  scheduledExecutorService = Executors.newScheduledThreadPool(2);
     private Channel registryChannel;
     private TaskDistributor taskDistributor;
-    private ResponseProcessor responseProcessor;
+    private ResponseProcessorChain responseProcessorChain;
 
     public TaskScheduler(TaskDistributor taskDistributor) {
         this.taskDistributor = taskDistributor;
@@ -61,13 +61,13 @@ public class TaskScheduler implements InitializingBean, ApplicationContextAware 
                         }
             });
 
-            ChannelFuture channelFuture = bootstrap.connect("127.0.0.1", 11111).addListener(future -> {
+            ChannelFuture channelFuture = bootstrap.connect("127.0.0.1", 18888).addListener(future -> {
                 if(future.isSuccess()){
                     System.out.println("Connected to Registry");
                     ChannelFuture cf = (ChannelFuture) future;
                     this.registryChannel = cf.channel();
                     registerToRegistryCentre();
-                    synchronizeExecutorsWithRegistry(1,5,TimeUnit.MINUTES);
+                    synchronizeExecutorsWithRegistry(1,15,TimeUnit.MINUTES);
                 } else {
                     this.registryChannel = null;
                     reconnect();
@@ -87,7 +87,7 @@ public class TaskScheduler implements InitializingBean, ApplicationContextAware 
         if(this.scheduledSynchronizeRegistryFuture != null) {
             this.scheduledSynchronizeRegistryFuture.cancel(false);
         }
-        this.scheduledSynchronizeRegistryFuture = scheduledExecutorService.scheduleAtFixedRate(this::sendPullRequest, initialDelay, interval, timeUnit);
+        this.scheduledSynchronizeRegistryFuture = scheduledExecutorService.scheduleAtFixedRate(this::sendPullingExecutorListRequest, initialDelay, interval, timeUnit);
     }
 
 
@@ -100,7 +100,8 @@ public class TaskScheduler implements InitializingBean, ApplicationContextAware 
         registryChannel.writeAndFlush(channelMessage);
     }
 
-    public void sendPullRequest() {
+    public void sendPullingExecutorListRequest() {
+        logger.info("start pulling executor list from registry");
         ChannelMessage channelMessage = new ChannelMessage(MessageType.PULL_REQUEST);
         this.registryChannel.writeAndFlush(channelMessage);
     }
@@ -122,13 +123,13 @@ public class TaskScheduler implements InitializingBean, ApplicationContextAware 
                         protected void initChannel(SocketChannel socketChannel) throws Exception {
                             socketChannel.pipeline().addLast(new JsonMessageToByteEncoder());
                             socketChannel.pipeline().addLast(new ByteToJsonMessageDecoder());
-                            socketChannel.pipeline().addLast(new SchedulerServerHandler(TaskScheduler.this.taskDistributor.getExecutorManager(), responseProcessor));
+                            socketChannel.pipeline().addLast(new SchedulerServerHandler(TaskScheduler.this.taskDistributor.getExecutorManager(), responseProcessorChain));
                         }
                     });
-            ChannelFuture future = serverBootstrap.bind(9999).addListener(f -> {
+            ChannelFuture future = serverBootstrap.bind(11111).addListener(f -> {
                 if(f.isSuccess()){
                     System.out.println("Scheduler started");
-                    taskDistributor.pullingTasksFromRepository(1, 2,  TimeUnit.MINUTES);
+                    taskDistributor.pullingTasksFromRepository(1, 1,  TimeUnit.MINUTES);
                     taskDistributor.startProcessTasks();
                 }
             });
@@ -141,10 +142,7 @@ public class TaskScheduler implements InitializingBean, ApplicationContextAware 
 
     @Override
     public void afterPropertiesSet() throws Exception {
-        Map<String, ResponseProcessor> beansOfType = this.applicationContext.getBeansOfType(ResponseProcessor.class);
-        if(!beansOfType.isEmpty()){
-            this.responseProcessor = beansOfType.values().iterator().next();
-        }
+        this.responseProcessorChain = this.applicationContext.getBean(ResponseProcessorChain.class);
     }
 
     @Override

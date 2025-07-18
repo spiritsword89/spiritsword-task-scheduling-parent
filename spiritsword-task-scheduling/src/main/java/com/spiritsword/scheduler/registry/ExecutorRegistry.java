@@ -13,11 +13,15 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class ExecutorRegistry {
     private static final Logger logger = LoggerFactory.getLogger(ExecutorRegistry.class);
+
+    @Autowired
+    private RegistryService registryService;
 
     @PostConstruct
     public void initialize() {
@@ -38,11 +42,11 @@ public class ExecutorRegistry {
                         protected void initChannel(SocketChannel socketChannel) throws Exception {
                             socketChannel.pipeline().addLast(new JsonMessageToByteEncoder());
                             socketChannel.pipeline().addLast(new ByteToJsonMessageDecoder());
-                            socketChannel.pipeline().addLast(new RegistryInboundHandler(new RegistryService()));
+                            socketChannel.pipeline().addLast(new RegistryInboundHandler(registryService));
                         }
                     });
 
-            ChannelFuture future = serverBootstrap.bind(11111).addListener(f -> {
+            ChannelFuture future = serverBootstrap.bind(18888).addListener(f -> {
                 if(f.isSuccess()){
                     System.out.println("Registry started successfully");
                 }

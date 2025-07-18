@@ -27,6 +27,16 @@ public class RegistryInboundHandler extends SimpleChannelInboundHandler<ChannelM
             this.schedulerChannel = channelHandlerContext.channel();
         }
 
+        if(channelMessage.getMessageType().equals(MessageType.EXECUTOR_REGISTER)) {
+            ExecutorInfo payload = (ExecutorInfo) channelMessage.getPayload();
+            registryService.register(payload.getExecutorTaskType(), payload);
+        }
+
+        if(channelMessage.getMessageType().equals(MessageType.EXECUTOR_STATE)) {
+            ExecutorInfo payload = (ExecutorInfo) channelMessage.getPayload();
+            registryService.updateExecutorInfo(payload.getExecutorTaskType(), payload);
+        }
+
         if(channelMessage.getMessageType().equals(MessageType.PULL_REQUEST)) {
             List<ExecutorInfo> allAvailableExecutors = registryService.getAllAvailableExecutors();
             ChannelMessage response = new ChannelMessage();

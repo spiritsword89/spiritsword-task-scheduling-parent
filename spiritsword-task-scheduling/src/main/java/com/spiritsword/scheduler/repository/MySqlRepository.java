@@ -87,16 +87,20 @@ public class MySqlRepository extends BaseRepository{
                 .map(id -> "?")
                 .collect(Collectors.joining(", "));
 
-        String sql = "SELECT * FROM TASK WHERE task_state IN ('READY', 'RETRY') AND next_trigger_time > ? AND next_trigger_time < ?";
+        String sql = "SELECT * FROM TASK WHERE task_state IN ('READY', 'RETRY') AND next_trigger_time >= ? AND next_trigger_time <= ?";
+
+        logger.info(sql);
 
         if(excludeTasks != null && !excludeTasks.isEmpty()) {
             sql = sql + " AND id NOT IN ("+ placeholders +")";
         }
 
+        logger.info(sql);
+
         try {
             PreparedStatement pst = connection.prepareStatement(sql);
-            pst.setTimestamp(1, new Timestamp(System.currentTimeMillis()));
-            pst.setTimestamp(2, new Timestamp(System.currentTimeMillis() + 2 * 60 * 1000));
+            pst.setTimestamp(1, Timestamp.valueOf(LocalDateTime.now()));
+            pst.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now().plusMinutes(10)));
 
             for (int i = 0; i < excludeTasks.size(); i++) {
                 pst.setInt(i + 3, excludeTasks.get(i));

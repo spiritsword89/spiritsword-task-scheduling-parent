@@ -32,13 +32,13 @@ public class ChannelMessage {
 
             if(builder.params != null) {
                 Map<String, Object> params = JSON.parseObject(builder.params, Map.class);
+                params.put("taskId", taskId);
                 taskRequest.setParams(params);
             }
             this.payload = taskRequest;
         } else if (builder.messageType.equals(MessageType.TASK_RESPONSE)) {
             TaskResult taskResult = new TaskResult();
             taskResult.setTaskId(builder.taskId);
-            taskResult.setSuccess(builder.success);
             taskResult.setMessage(builder.message);
             taskResult.setHandlerClass(builder.handlerClass);
             taskResult.setState(builder.state);
@@ -56,8 +56,16 @@ public class ChannelMessage {
             executorInfo.setPort(builder.port);
             executorInfo.setLastHeartbeat(builder.lastHeartbeat);
             this.payload = executorInfo;
+        } else if (builder.messageType.equals(MessageType.EXECUTOR_REGISTER)) {
+            ExecutorInfo executorInfo = new ExecutorInfo();
+            executorInfo.setExecutorId(builder.executorId);
+            executorInfo.setExecutorTaskType(builder.executorTaskType);
+            executorInfo.setHandlerClassList(builder.handlerClassList);
+            executorInfo.setHost(builder.host);
+            executorInfo.setPort(builder.port);
+            executorInfo.setLastHeartbeat(System.currentTimeMillis());
+            this.payload = executorInfo;
         }
-
     }
 
     public ChannelMessage(MessageType messageType) {
